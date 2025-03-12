@@ -1,8 +1,9 @@
-version: "3.6"
 services:
   gesturesensor:
     container_name: gesturesensor
     restart: unless-stopped
     image: gesturesensor:latest
+    environment:
+      - TZ=Asia/Ho_Chi_Minh  # Timezone cho Việt Nam
     volumes:
-      - /appdir/gesturesensor/config.yml:/config/config.yml:ro
+      - ./config.yml:/code/config.yml:ro
