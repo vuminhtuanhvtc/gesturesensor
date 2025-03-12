@@ -9,6 +9,8 @@ config.client.on_connect = mqtthandlers.on_connect
 config.client.on_message = mqtthandlers.on_message
 config.client.on_publish = mqtthandlers.on_publish
 
+mqtthandlers.setup_mqtt_auth(config.client)
+
 config.client.connect(config.config['mqtt']['host'], config.config['mqtt']['port'], 60)
 
 t1 = threading.Thread(target=gesturedetection.lookforhands)

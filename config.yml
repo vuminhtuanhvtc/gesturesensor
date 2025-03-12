@@ -1,16 +1,18 @@
 mqtt:
-  host: 192.168.1.75
+  host: 192.168.1.202
   port: 1883
+  user: test-mqtt
+  password: abc
 
 frigate:
-  host: 192.168.1.75
+  host: 192.168.1.11
   port: 5000
   cameras:
-    - garage
-    - livingroom
+    - camera_phong_khach
+    - camera_phong_lam_viec
 
 double-take:
-  host: 192.168.1.75
+  host: 192.168.1.11
   port: 3000
 
 gesture:
