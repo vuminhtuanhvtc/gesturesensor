@@ -19,3 +19,5 @@ gesture:
   handsize: 9000
   confidence: 0.75
   topic: gestures
+  detect_all_results: true  # Mặc định chỉ xử lý khi có match
+  allowed_persons: []  # Danh sách trống sẽ nhận diện tất cả mọi người
