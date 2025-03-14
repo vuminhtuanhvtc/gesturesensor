@@ -11,9 +11,9 @@ frigate:
     - camera_phong_khach
     - camera_phong_lam_viec
 
-double-take:
-  host: 192.168.1.11
-  port: 3000
+#double-take:
+#  host: 192.168.1.11
+#  port: 3000
 
 gesture:
   handsize: 9000

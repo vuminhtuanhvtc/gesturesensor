@@ -122,7 +122,7 @@ def get_person_to_process(matches):
 def lookforhands():
     # publish to the availablility topic with retain turned on
     # HA seems to need this to keep the sensor from going "unavailable"
-    print("Publishing availability")
+    print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Publishing availability")
     topic = config.config['gesture']['topic'] + "/" + 'availability'
     payload = "online"
     ret = config.client.publish(topic, payload, retain=True)
@@ -134,30 +134,93 @@ def lookforhands():
     for camera in config.config['frigate']['cameras']:
         pubinitial(camera)
     
+    print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Starting main loop - checking for gestures")
+    
+    # Lưu trạng thái camera trước đó để tránh log lặp lại
+    previous_camera_states = {}
+    for cameraname in config.numpersons:
+        previous_camera_states[cameraname] = -1  # Khởi tạo với giá trị không tồn tại
+    
     while(True):
         for cameraname in config.numpersons:
             numcamerapeople = config.numpersons[cameraname]
             topic = config.config['gesture']['topic'] + "/" + cameraname
             
+            # Chỉ in log khi số người thay đổi
+            if previous_camera_states[cameraname] != numcamerapeople:
+                print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Camera {cameraname}: {numcamerapeople} người")
+                previous_camera_states[cameraname] = numcamerapeople
+            
             # if there are people in front a camera
             if numcamerapeople > 0:
-                matches = getmatches(cameraname)
-                
-                # Kiểm tra xem có nên xử lý kết quả này không
-                if should_process_result(matches):
-                    # Tìm người phù hợp để xử lý
-                    person_name, person_box = get_person_to_process(matches)
+                process_start_time = time.time()
+                try:
+                    # Kiểm tra xem cần xử lý trực tiếp hay qua double-take
+                    use_doubletake = False
                     
-                    if person_name:
-                        # Lấy hình ảnh và phân tích cử chỉ
-                        img = getlatestimg(cameraname)
-                        gesture = gesturemodelfunctions.gesturemodelmatch(img)
-                        pubresults(cameraname, person_name, gesture)
+                    # Kiểm tra xem có cấu hình double-take không
+                    if 'double-take' in config.config:
+                        # Nếu không có danh sách camera, xử lý tất cả qua double-take
+                        if 'camera' not in config.config['double-take']:
+                            use_doubletake = True
+                        # Nếu có danh sách camera, kiểm tra xem camera hiện tại có trong danh sách không
+                        elif cameraname in config.config['double-take']['camera']:
+                            use_doubletake = True
+                    
+                    if use_doubletake:
+                        # Xử lý qua double-take
+                        dt_start_time = time.time()
+                        matches = getmatches(cameraname)
+                        dt_time = time.time() - dt_start_time
+                        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Camera {cameraname}: Double-Take processed in {dt_time:.3f}s")
+                        
+                        # Kiểm tra xem có nên xử lý kết quả này không
+                        should_process = should_process_result(matches)
+                        
+                        if should_process:
+                            # Tìm người phù hợp để xử lý
+                            person_name, person_box = get_person_to_process(matches)
+                            
+                            if person_name:
+                                # Lấy hình ảnh và phân tích cử chỉ
+                                img_start_time = time.time()
+                                img = getlatestimg(cameraname)
+                                img_time = time.time() - img_start_time
+                                
+                                gesture_start_time = time.time()
+                                gesture = gesturemodelfunctions.gesturemodelmatch(img)
+                                gesture_time = time.time() - gesture_start_time
+                                
+                                print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Camera {cameraname}: Gesture analysis for {person_name}: '{gesture}' (img: {img_time:.3f}s, gesture: {gesture_time:.3f}s)")
+                                pubresults(cameraname, person_name, gesture)
+                            else:
+                                print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Camera {cameraname}: No suitable person found")
+                                pubresults(cameraname, '', '')
+                        else:
+                            pubresults(cameraname, '', '')
                     else:
-                        pubresults(cameraname, '', '')
-                else:
-                    pubresults(cameraname, '', '')
+                        # Xử lý trực tiếp hình ảnh từ frigate
+                        img_start_time = time.time()
+                        img = getlatestimg(cameraname)
+                        img_time = time.time() - img_start_time
+                        
+                        gesture_start_time = time.time()
+                        gesture = gesturemodelfunctions.gesturemodelmatch(img)
+                        gesture_time = time.time() - gesture_start_time
+                        
+                        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Camera {cameraname}: Direct gesture analysis: '{gesture}' (img: {img_time:.3f}s, gesture: {gesture_time:.3f}s)")
+                        # Vì không có thông tin người dùng, trường person sẽ để trống
+                        pubresults(cameraname, '', gesture)
+                    
+                    total_process_time = time.time() - process_start_time
+                    print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Camera {cameraname}: Total processing time: {total_process_time:.3f}s")
+                except Exception as e:
+                    total_process_time = time.time() - process_start_time
+                    print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Error processing camera {cameraname} after {total_process_time:.3f}s: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
             elif numcamerapeople == 0:
+                # Không cần log nếu số người vẫn là 0, đã được xử lý bởi việc kiểm tra thay đổi ở trên
                 pubresults(cameraname, '', '')
         
         gc.collect()
