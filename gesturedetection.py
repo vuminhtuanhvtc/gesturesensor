@@ -75,7 +75,7 @@ def lookforhands():
                 process_start_time = time.time()
                 try:
                     use_double_take = config.should_use_double_take(cameraname)
-                    detect_all_results = config.config['gesture'].get('detect_all_results', False)
+                    detect_all_results = config.config.get('double-take', {}).get('detect_all_results', False)
                     
                     if use_double_take:
                         dt_start_time = time.time()
@@ -83,7 +83,7 @@ def lookforhands():
                         dt_time = time.time() - dt_start_time
                         print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Camera {cameraname}: Double-Take processed in {dt_time:.3f}s")
                         
-                        if should_process_result(matches) or detect_all_results:
+                        if detect_all_results or should_process_result(matches):
                             person_name, _ = get_person_to_process(matches)
                             if not detect_all_results and not person_name:
                                 print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Camera {cameraname}: No match found, skipping gesture detection")

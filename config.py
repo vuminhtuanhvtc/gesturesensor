@@ -39,20 +39,21 @@ def _apply_defaults():
         'handsize': 9000,
         'confidence': 0.75,
         'topic': 'gestures',
-        'detect_all_results': False,
         'allowed_persons': []
     }
     
-    # Apply defaults to gesture config
     for key, value in gesture_defaults.items():
         if key not in config['gesture']:
             config['gesture'][key] = value
+    
+    # Ensure double-take config exists and move detect_all_results to double-take
+    if 'double-take' in config and 'detect_all_results' not in config['double-take']:
+        config['double-take']['detect_all_results'] = False
 
 def _init_camera_states():
     """Initialize the state for each camera"""
-    # If no cameras specified, fetch from Frigate API
+    import requests
     if 'cameras' not in config['frigate'] or not config['frigate']['cameras']:
-        import requests
         try:
             frigate_url = f"http://{config['frigate']['host']}:{config['frigate']['port']}/api/config"
             response = requests.get(frigate_url, timeout=10)
@@ -67,29 +68,25 @@ def _init_camera_states():
             print(f"Error connecting to Frigate API: {str(e)}")
             config['frigate']['cameras'] = []
     
-    # Initialize camera states
     for camera in config['frigate']['cameras']:
         numpersons[camera] = 0
         sentpayload[camera] = ""
 
 def should_use_double_take(camera_name):
     """Check if a camera should use Double-Take for face recognition"""
-    # If Double-Take is not configured, don't use it
     if 'double-take' not in config:
         return False
-    
-    # If no cameras specified for Double-Take, use it for all cameras
     if 'cameras' not in config['double-take']:
         return True
-    
-    # If cameras are specified, check if this camera is in the list
     return camera_name in config['double-take']['cameras']
+
+def detect_all_results():
+    """Check if all images should be analyzed regardless of Double-Take results"""
+    return config.get('double-take', {}).get('detect_all_results', False)
 
 def is_person_allowed(person_name):
     """Check if a person is allowed based on the configuration"""
     allowed_persons = config['gesture'].get('allowed_persons', [])
-    # If the list is empty, allow all people
     if not allowed_persons:
         return True
-    # If the list is not empty, check if the person is in the list
     return person_name in allowed_persons

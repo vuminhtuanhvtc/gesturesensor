@@ -13,10 +13,12 @@ GestureSensor works with [Frigate](https://frigate.video/) to detect hand gestur
 
 ## How It Works
 
-1. GestureSensor connects to your Frigate instance via MQTT to receive person detection events
-2. When a person is detected, it analyzes the camera feed for hand gestures using [MediaPipe](https://google.github.io/mediapipe/)
-3. If Double-Take integration is enabled, it first checks for face matches before processing gestures
-4. Results are published to MQTT for use with home automation systems like Home Assistant
+1. GestureSensor connects to your Frigate instance via MQTT to receive person detection events.
+2. When a person is detected, it analyzes the camera feed for hand gestures using [MediaPipe](https://google.github.io/mediapipe/).
+3. If Double-Take integration is enabled, it first checks for face matches before processing gestures.
+4. By default, gestures are only analyzed if Double-Take finds a match.
+5. If `detect_all_results` is enabled in the Double-Take configuration, GestureSensor will process all images regardless of Double-Take’s recognition result.
+6. Results are published to MQTT for use with home automation systems like Home Assistant.
 
 Supported gestures include:
 - Forward
@@ -86,12 +88,12 @@ double-take:  # Optional: enable face recognition
   port: 3000
   cameras:  # Optional: specify which cameras should use face recognition
     - camera1
+  detect_all_results: false  # If true, process all images regardless of Double-Take's recognition result
 
 gesture:  # Optional: customize gesture detection
   handsize: 9000  # Minimum hand size in pixels
   confidence: 0.75  # Confidence threshold for gesture detection
   topic: gestures  # MQTT topic prefix
-  detect_all_results: false  # Only process when faces match
   allowed_persons:  # Empty list means process all people
     - person1
     - person2
@@ -114,12 +116,12 @@ gesture:  # Optional: customize gesture detection
 - `host`: Double-Take server address
 - `port`: Double-Take API port
 - `cameras`: List of cameras that should use face recognition (optional, defaults to all cameras)
+- `detect_all_results`: When true, process all images regardless of face recognition result
 
 #### Gesture
 - `handsize`: Minimum hand size in pixels for detection (default: 9000)
 - `confidence`: Confidence threshold for gesture classification (default: 0.75)
 - `topic`: MQTT topic prefix for publishing results (default: gestures)
-- `detect_all_results`: When false, only process hands when faces match; when true, process all detected people (default: false)
 - `allowed_persons`: List of person names to process (empty list means process all people)
 
 ## Running with Docker
