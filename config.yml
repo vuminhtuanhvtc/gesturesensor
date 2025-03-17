@@ -1,23 +1,31 @@
+# MQTT broker connection details
 mqtt:
-  host: 192.168.1.202
-  port: 1883
-  user: test-mqtt
-  password: abc
+  host: 192.168.1.202    # MQTT broker address
+  port: 1883         # MQTT broker port
+  user: test-mqtt    # Optional: Username for MQTT authentication
+  password: abc # Optional: Password for MQTT authentication
 
+# Frigate video NVR connection details
 frigate:
-  host: 192.168.1.11
-  port: 5000
-  cameras:
-    - camera_phong_khach
-    - camera_phong_lam_viec
+  host: 192.168.1.11    # Frigate server address
+  port: 5000         # Frigate API port
+#  cameras:           # Optional: List of cameras to monitor (if omitted, all Frigate cameras will be used)
+#    - camera1
+#    - camera2
 
-#double-take:
-#  host: 192.168.1.11
-#  port: 3000
+# Optional: Double-Take face recognition connection details
+# Comment out this entire section if you don't want to use face recognition
+double-take:
+   host: 192.168.1.11   # Double-Take server address
+   port: 3000        # Double-Take API port
+#   cameras:          # Optional: List of cameras that should use face recognition
+#     - camera1       # If omitted, all cameras will use face recognition
 
-gesture:
-  handsize: 9000
-  confidence: 0.75
-  topic: gestures
-  detect_all_results: true  # Mặc định chỉ xử lý khi có match
-  allowed_persons: []  # Danh sách trống sẽ nhận diện tất cả mọi người
+# Optional: Gesture detection parameters
+# Comment out this entire section to use defaults
+# gesture:
+#   handsize: 9000     # Minimum hand size in pixels for detection (default: 9000)
+#   confidence: 0.75   # Confidence threshold for gesture classification (default: 0.75)
+#   topic: gestures    # MQTT topic prefix for publishing results (default: gestures)
+#   detect_all_results: false  # When false, only process when faces match; when true, process all people (default: false)
+#   allowed_persons: []  # List of person names to process. Empty list means process all people (default: [])

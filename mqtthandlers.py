@@ -1,35 +1,42 @@
 import config
 
-
-def on_publish(client,userdata,result):
+def on_publish(client, userdata, result):
+    """Callback when a message is published"""
     pass
 
-
 def on_message(client, userdata, msg):
-    print(msg.topic+" "+str(msg.payload))
-
-    # get the name of the camera
-    list = msg.topic.split("/")
-    msgcam = list[1]
-
-    # update the numpersons dictionary
+    """Callback when a message is received"""
     try:
-        config.numpersons[msgcam] = int(msg.payload)
-    except:
-        config.numpersons[msgcam] = 0
+        # Extract camera name from topic
+        topic_parts = msg.topic.split("/")
+        if len(topic_parts) >= 2:
+            camera_name = topic_parts[1]
+            
+            # Update number of persons for this camera
+            try:
+                num_persons = int(msg.payload)
+                config.numpersons[camera_name] = num_persons
+            except (ValueError, TypeError):
+                config.numpersons[camera_name] = 0
+                print(f"Invalid payload for {msg.topic}: {msg.payload}")
+        else:
+            print(f"Unexpected topic format: {msg.topic}")
+    except Exception as e:
+        print(f"Error processing MQTT message: {str(e)}")
 
-
-# set up subscriptions when connecting completes.
 def on_connect(client, userdata, flags, rc):
-    print("Connected with result code "+str(rc))
-
+    """Callback when connection to MQTT broker is established"""
+    print(f"Connected to MQTT broker with result code {rc}")
+    
+    # Subscribe to person detection topics for all configured cameras
     for camera in config.config['frigate']['cameras']:
-        client.subscribe("frigate/" + camera + "/person")
+        topic = f"frigate/{camera}/person"
+        client.subscribe(topic)
+        print(f"Subscribed to {topic}")
 
-# Hàm mới để thiết lập xác thực MQTT
 def setup_mqtt_auth(client):
-    # Kiểm tra xem có thông tin xác thực không
+    """Set up MQTT authentication if configured"""
     mqtt_config = config.config.get('mqtt', {})
     if 'user' in mqtt_config and 'password' in mqtt_config:
         client.username_pw_set(mqtt_config['user'], mqtt_config['password'])
-        print(f"MQTT auth configured with user: {mqtt_config['user']}")
+        print(f"MQTT authentication configured with user: {mqtt_config['user']}")

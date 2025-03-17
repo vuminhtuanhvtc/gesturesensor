@@ -4,6 +4,10 @@ services:
     restart: unless-stopped
     image: gesturesensor:latest
     environment:
-      - TZ=Asia/Ho_Chi_Minh  # Timezone cho Việt Nam
+      - TZ=Asia/Ho_Chi_Minh  # Set your timezone here
     volumes:
-      - ./config.yml:/code/config.yml:ro
+      - ./config.yml:/config/config.yml:ro  # Mount your config file
+    # Uncomment the following lines if you want to build the image directly
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
