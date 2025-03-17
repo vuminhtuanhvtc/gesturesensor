@@ -6,7 +6,14 @@ GestureSensor works with [Frigate](https://frigate.video/) to detect hand gestur
 
 - Detect hand gestures from Frigate camera feeds
 - Optionally integrate with Double-Take for face recognition
-- Publish detection results to MQTT
+- Publish detailed detection results to MQTT including:
+  - Process ID
+  - Person identification
+  - Gesture detected
+  - Processing duration
+  - Double-Take results
+  - Hand detection coordinates
+- Store annotated images for debugging and review
 - Configure which cameras to monitor
 - Selective processing based on recognized individuals
 - Customizable gesture detection parameters
@@ -17,8 +24,9 @@ GestureSensor works with [Frigate](https://frigate.video/) to detect hand gestur
 2. When a person is detected, it analyzes the camera feed for hand gestures using [MediaPipe](https://google.github.io/mediapipe/).
 3. If Double-Take integration is enabled, it first checks for face matches before processing gestures.
 4. By default, gestures are only analyzed if Double-Take finds a match.
-5. If `detect_all_results` is enabled in the Double-Take configuration, GestureSensor will process all images regardless of Double-Take’s recognition result.
+5. If `detect_all_results` is enabled in the Double-Take configuration, GestureSensor will process all images regardless of Double-Take's recognition result.
 6. Results are published to MQTT for use with home automation systems like Home Assistant.
+7. Optionally, annotated images with bounding boxes showing the detected gestures are saved to a storage directory.
 
 Supported gestures include:
 - Forward
@@ -64,6 +72,7 @@ With this configuration, GestureSensor will:
 - Monitor all cameras configured in Frigate
 - Process gestures for any detected person
 - Use default gesture detection settings
+- Store annotated images in the "storage" directory with 1-day retention
 
 ### Advanced Configuration
 
@@ -97,6 +106,12 @@ gesture:  # Optional: customize gesture detection
   allowed_persons:  # Empty list means process all people
     - person1
     - person2
+    
+storage:  # Optional: customize image storage
+  enabled: true  # Set to false to disable image storage
+  path: storage  # Directory where images will be stored
+  retention_days: 1  # Number of days to keep images, set to 0 for permanent storage
+  save_annotated: true  # Save images with gesture annotations
 ```
 
 ### Configuration Options Explained
@@ -124,6 +139,12 @@ gesture:  # Optional: customize gesture detection
 - `topic`: MQTT topic prefix for publishing results (default: gestures)
 - `allowed_persons`: List of person names to process (empty list means process all people)
 
+#### Storage
+- `enabled`: Enable or disable image storage (default: true)
+- `path`: Directory where images will be stored (default: storage)
+- `retention_days`: Number of days to keep images, set to 0 for permanent storage (default: 1)
+- `save_annotated`: Save images with gesture annotations (default: true)
+
 ## Running with Docker
 
 Build the Docker image:
@@ -136,6 +157,41 @@ Run with Docker Compose:
 
 ```bash
 docker-compose up -d
+```
+
+## MQTT Payload Format
+
+GestureSensor publishes detection results in JSON format with the following structure:
+
+```json
+{
+  "id": "1616423898123",
+  "person": "john",
+  "gesture": "Stop",
+  "timestamp": 1616423898,
+  "camera": "camera1",
+  "duration": 0.532,
+  "double_take": {
+    "used": true,
+    "results": {
+      "results": [
+        {
+          "match_found": true,
+          "match_name": "john",
+          "match_confidence": 0.92
+        }
+      ]
+    }
+  },
+  "hand_detection": {
+    "x": 320,
+    "y": 240,
+    "width": 120,
+    "height": 140,
+    "area": 16800,
+    "confidence": 0.87
+  }
+}
 ```
 
 ## Home Assistant Integration
@@ -155,6 +211,6 @@ mqtt:
       json_attributes_template: "{{ value_json | tojson }}"
 ```
 
-This creates a sensor with the current gesture as its state and additional attributes for the detected person.
+This creates a sensor with the current gesture as its state and additional attributes for all the detection data.
 
 You can then create automations that trigger based on specific gestures or people.

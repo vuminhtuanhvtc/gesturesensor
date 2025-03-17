@@ -1,5 +1,7 @@
 import yaml
 import paho.mqtt.client as mqtt
+import os
+import time
 
 config = ""
 numpersons = {}
@@ -20,6 +22,10 @@ def init():
     
     # Initialize camera states
     _init_camera_states()
+    
+    # Create storage directory if enabled
+    if config['storage']['enabled']:
+        os.makedirs(config['storage']['path'], exist_ok=True)
 
 def _apply_defaults():
     """Apply default values for missing configurations"""
@@ -45,6 +51,21 @@ def _apply_defaults():
     for key, value in gesture_defaults.items():
         if key not in config['gesture']:
             config['gesture'][key] = value
+    
+    # Ensure storage config exists with defaults
+    if 'storage' not in config:
+        config['storage'] = {}
+    
+    storage_defaults = {
+        'enabled': True,
+        'path': 'storage',
+        'retention_days': 1,
+        'save_annotated': True
+    }
+    
+    for key, value in storage_defaults.items():
+        if key not in config['storage']:
+            config['storage'][key] = value
     
     # Ensure double-take config exists and move detect_all_results to double-take
     if 'double-take' in config and 'detect_all_results' not in config['double-take']:
@@ -90,3 +111,27 @@ def is_person_allowed(person_name):
     if not allowed_persons:
         return True
     return person_name in allowed_persons
+
+def cleanup_old_images():
+    """Clean up old images based on retention policy"""
+    if not config['storage']['enabled'] or config['storage']['retention_days'] <= 0:
+        return  # No cleanup needed if storage disabled or retention is infinite
+        
+    storage_path = config['storage']['path']
+    retention_seconds = config['storage']['retention_days'] * 24 * 60 * 60
+    current_time = time.time()
+    
+    try:
+        for filename in os.listdir(storage_path):
+            file_path = os.path.join(storage_path, filename)
+            # Skip directories and non-image files
+            if os.path.isdir(file_path) or not filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                continue
+                
+            # Check file age
+            file_age = current_time - os.path.getmtime(file_path)
+            if file_age > retention_seconds:
+                os.remove(file_path)
+                print(f"Removed old image: {filename}")
+    except Exception as e:
+        print(f"Error during image cleanup: {str(e)}")

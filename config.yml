@@ -29,3 +29,11 @@ double-take:
 #   confidence: 0.75   # Confidence threshold for gesture classification (default: 0.75)
 #   topic: gestures    # MQTT topic prefix for publishing results (default: gestures)
 #   allowed_persons: []  # List of person names to process. Empty list means process all people (default: [])
+
+# Optional: Storage configuration for saving processed images
+# Comment out this entire section to use defaults
+# storage:
+#   enabled: true      # Set to false to disable image storage completely (default: true)
+#   path: storage      # Directory where images will be stored (default: storage)
+#   retention_days: 1  # Number of days to keep images, set to 0 for permanent storage (default: 1)
+#   save_annotated: true  # Save images with gesture annotations (default: true)

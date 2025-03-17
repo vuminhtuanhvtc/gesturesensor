@@ -29,7 +29,7 @@ def _calc_bounding_rect(image, landmarks):
 
     x, y, w, h = cv.boundingRect(landmark_array)
 
-    return [x, y, x + w, y + h]
+    return [x, y, w, h]  # Return x, y, width, height format
 
 
 def _calc_landmark_list(image, landmarks):
@@ -104,17 +104,29 @@ def gesturemodelmatch(image):
     image.flags.writeable = False
 
     results = hands.process(image)
+    
+    # Return values: gesture and hand bounding box
+    detected_gesture = ""
+    hand_rect = None
 
     if results.multi_hand_landmarks is not None:
         for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
                                               results.multi_handedness):
             # Bounding box calculation
-            brect = _calc_bounding_rect(debug_image, hand_landmarks)
+            x, y, w, h = _calc_bounding_rect(debug_image, hand_landmarks)
+            
             # make sure hand is big enough
-            width = brect[2]-brect[0]
-            height = brect[3]-brect[1]
-            area = width * height
+            area = w * h
             if area > config.config['gesture']['handsize']:
+                # Create hand bounding box dict for MQTT payload
+                hand_rect = {
+                    'x': int(x),
+                    'y': int(y),
+                    'width': int(w),
+                    'height': int(h),
+                    'area': int(area)
+                }
+                
                 # Landmark calculation
                 landmark_list = _calc_landmark_list(debug_image, hand_landmarks)
 
@@ -135,11 +147,11 @@ def gesturemodelmatch(image):
 
                 hand_sign_id = np.argmax(np.squeeze(result))
                 confidence = np.squeeze(result)[hand_sign_id]
+                
                 if confidence > config.config['gesture']['confidence']:
-                    return keypoint_classifier_labels[hand_sign_id]
-                else:
-                    return ""
-            else:
-                return ""
-    else:
-        return ""
+                    detected_gesture = keypoint_classifier_labels[hand_sign_id]
+                    # Add confidence to hand_rect data
+                    hand_rect['confidence'] = float(confidence)
+                    
+    # Return the detected gesture and bounding box information
+    return detected_gesture, hand_rect
