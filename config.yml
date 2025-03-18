@@ -18,7 +18,7 @@ frigate:
 double-take:
    host: 192.168.1.11   # Double-Take server address
    port: 3000        # Double-Take API port
-#   detect_all_results: false  # When false, only process when faces match; when true, process all people (default: false)
+   detect_all_results: true  # When false, only process when faces match; when true, process all people (default: false)
 #   cameras:          # Optional: List of cameras that should use face recognition
 #     - camera1       # If omitted, all cameras will use face recognition
 

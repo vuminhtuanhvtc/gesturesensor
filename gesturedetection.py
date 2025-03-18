@@ -55,7 +55,8 @@ def pubresults(cameraname, name, gesture, process_duration=0, dt_results=None, h
     }
     
     if config.sentpayload[cameraname] != payload:
-        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Publishing to {topic}: {str(payload)}")
+        if name or gesture:  # Chỉ in log khi có dữ liệu thực
+	        print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Publishing to {topic}: {str(payload)}")
         ret = config.client.publish(topic, json.dumps(payload), retain=True)
         config.sentpayload[cameraname] = payload
 
@@ -237,6 +238,7 @@ def lookforhands():
                     print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - Error processing camera {cameraname}: {str(e)}")
             else:
                 pubresults(cameraname, '', '')
+                continue
         
         gc.collect()
         time.sleep(0.5)
